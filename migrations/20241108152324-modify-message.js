@@ -47,10 +47,15 @@ module.exports = {
     });
 
     // Ajouter les colonnes createdAt et updatedAt
-    await queryInterface.addColumn('Messages', 'createdAt', {
-      type: Sequelize.DATE,
-      defaultValue: Sequelize.NOW
-    });
+    const tableInfo = await queryInterface.describeTable('Message');
+    if (!tableInfo.createdAt) {
+      await queryInterface.addColumn('Message', 'createdAt', {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.NOW,
+      });
+    }
+    
     await queryInterface.addColumn('Messages', 'updatedAt', {
       type: Sequelize.DATE,
       defaultValue: Sequelize.NOW
