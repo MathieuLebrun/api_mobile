@@ -80,6 +80,13 @@
         <button onclick="joinRoom()">Join Room</button>
     </div>
 
+    <!--<div>
+        <label for="user2Id">User2 ID:</label>
+        <input type="text" id="user2Id" placeholder="Enter the ID of the other user">
+        <button onclick="createConversation()">Create Conversation</button>
+    </div>-->
+    <div id="conversations"></div>
+
     <div id="chat-container">
         <div id="chat"></div>
         <div id="message-input-container">
@@ -143,6 +150,122 @@
             chatDiv.appendChild(newMessage);
             chatDiv.scrollTop = chatDiv.scrollHeight;
         }
+
+        function loadMessages(conversationId) {
+            console.log('Chargement des messages de la conversation', conversationId);
+            // Simuler la récupération des messages de la conversation
+            const messages = [
+                { userId: 'Alice', conversationId: conversationId, message: 'Bonjour!' },
+                { userId: 'Bob', conversationId: conversationId, message: 'Salut!' }
+            ];
+
+            // Sélectionner le div avec l'id "chat"
+            const chatDiv = document.getElementById('chat');
+
+            // Vider le contenu actuel du div
+            chatDiv.innerHTML = '';
+
+            // Ajouter les messages au div en utilisant displayMessage
+            messages.forEach(message => {
+                displayMessage(message, message.userId === 'Alice'); // Exemple de condition pour isMe
+            });
+        }
+
+        
+            const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjcsImlhdCI6MTcyOTAwMTk0MX0.Q2OW1IZZsJCtlIPd_nQLJHdS-0aUXSuOYC2Wcpd0jeI";
+
+            // Fonction pour charger les conversations
+            async function loadConversations() {
+                try {
+                    const response = await fetch('http://localhost:3000/api/conversation', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    const data = await response.json();
+                    if (response.ok) {
+                        const conversationsDiv = document.getElementById('conversations');
+                        conversationsDiv.innerHTML = '';
+                        data.forEach(conversation => {
+                            const conversationDiv = document.createElement('div');
+                            conversationDiv.innerHTML = `
+                                <p>Conversation avec ${conversation.otherUser.prenom} ${conversation.otherUser.nom}</p>
+                                <button onclick="loadMessages(${conversation.conversationId})">Voir les messages</button>
+                            `;
+                            conversationsDiv.appendChild(conversationDiv);
+                        });
+                    } else {
+                        console.error('Erreur:', data.error);
+                    }
+                } catch (error) {
+                    console.log('Erreur:', error);
+                }
+            }
+
+            loadConversations();
+
+        // Fetch all conversations
+
+        async function fetchConversations() {
+            try {
+                const response = await fetch('http://localhost:3000/api/conversation', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjcsImlhdCI6MTcyOTAwMTk0MX0.Q2OW1IZZsJCtlIPd_nQLJHdS-0aUXSuOYC2Wcpd0jeI') // Ensure you use the correct token
+                    }
+                });
+                const conversations = await response.json();
+                if (response.ok) {
+                    displayConversations(conversations);
+                } else {
+                    console.error('Error:', conversations.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Create a new conversation
+        async function createConversation() {
+            const user2Id = document.getElementById('user2Id').value; // Get the ID of the second user
+            if (!user2Id) {
+                alert('User2ID is required');
+                return;
+            }
+            try {
+                const response = await fetch('/conversation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('token') // Ensure you use the correct token
+                    },
+                    body: JSON.stringify({ User2ID: user2Id })
+                });
+                const conversation = await response.json();
+                if (response.ok) {
+                    alert('Conversation created successfully');
+                    fetchConversations(); // Refresh conversations list
+                } else {
+                    console.error('Error:', conversation.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Display all conversations
+        function displayConversations(conversations) {
+            const chatDiv = document.getElementById('chat');
+            chatDiv.innerHTML = ''; // Clear previous conversations
+            conversations.forEach(conv => {
+                const conversationElement = document.createElement('div');
+                conversationElement.classList.add('conversation');
+                conversationElement.textContent = `Conversation between: ${conv.user1.prenom} ${conv.user1.nom} and ${conv.user2.prenom} ${conv.user2.nom}`;
+                chatDiv.appendChild(conversationElement);
+            });
+        }
+
     </script>
 </body>
 </html>
