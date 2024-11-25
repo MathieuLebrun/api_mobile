@@ -33,9 +33,23 @@ router.get('/conversation', auth, async (req, res) => {
 
     // Transformer les résultats pour inclure seulement l'autre utilisateur et l'ID de la conversation
     const transformedConversations = conversations.map(conversation => {
-      const otherUser = conversation.User1ID === userId ? conversation.user2 : conversation.user1;
+      var otherUser = "";
+      var myUser = ""
+      if (conversation.User1ID === userId) {
+        otherUser = conversation.user2;
+        myUser = conversation.user1;
+      }
+      else {
+        otherUser = conversation.user1;
+        myUser = conversation.user2;
+      }
+      // const otherUser = conversation.User1ID != userId ? conversation.user2 : conversation.user1;
       return {
         conversationId: conversation.id,
+        myUser: {
+          id: myUser.id,
+          nom: "  "
+        },
         otherUser: {
           id: otherUser.id,
           prenom: otherUser.prenom,

@@ -53,7 +53,7 @@ io.on('connection', (socket) => {
   // Receive message
   socket.on('sendMessage', ({ userId, conversationId, message }) => {
     if (socket.conversationId === conversationId) { // Vérifiez que l'utilisateur appartient bien à la conversation
-      console.log(`id: ${userId}, idmessage: ${conversationId}, message: ${message}`);
+      console.log(`userId: ${userId}, idmessage: ${conversationId}, message: ${message}`);
       io.to(conversationId).emit('message', { userId, conversationId, message });
     } else {
       console.error(`User ${userId} attempted to send a message to a conversation they are not part of.`);
