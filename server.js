@@ -20,6 +20,7 @@ const userRouter = require('./routes/users');
 const authRouter = require('./routes/auth');
 const postRouter = require('./routes/posts');
 const messageRouter = require('./routes/messages');
+const helioRouter = require('./routes/helio');
 const commentaireRouter = require('./routes/commentaires');
 const conversationsRouter = require('./routes/conversations');
 
@@ -31,6 +32,7 @@ app.use('/api', userRouter);
 app.use('/api', authRouter);
 app.use('/api', postRouter);
 app.use('/api', messageRouter);
+app.use('/api', helioRouter);
 app.use('/api', commentaireRouter);
 app.use('/api', conversationsRouter);
 

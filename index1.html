@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test Page</title>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #chat-container {
+            display: flex;
+            flex-direction: column;
+            width: 50%;
+            max-width: 600px;
+            margin-top: 20px;
+        }
+        #chat {
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 100%;
+            height: 400px;
+            overflow-y: scroll;
+            background-color: #fafafa;
+        }
+        .message {
+            margin: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            max-width: 80%;
+        }
+        .message.me {
+            background-color: #d1e7dd;
+            align-self: flex-end;
+            text-align: right;
+        }
+        .message.other {
+            background-color: #f8d7da;
+            align-self: flex-start;
+        }
+        #message-input-container {
+            display: flex;
+            width: 100%;
+            margin-top: 10px;
+        }
+        #message {
+            flex-grow: 1;
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        #send-button {
+            padding: 10px;
+            margin-left: 5px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #send-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Test Page</h1>
+    <div>
+        <label for="userId">User ID:</label>
+        <input type="text" id="userId" placeholder="Enter your user ID">
+        <button onclick="loadConversations()">Get user conversation</button>
+        <br><br>
+        <label for="conversationId">Conversation ID:</label>
+        <input type="text" id="conversationId" placeholder="Enter conversation ID">
+        <br><br>
+        <button onclick="joinRoom()">Join Room</button>
+    </div>
+
+    <!--<div>
+        <label for="user2Id">User2 ID:</label>
+        <input type="text" id="user2Id" placeholder="Enter the ID of the other user">
+        <button onclick="createConversation()">Create Conversation</button>
+    </div>-->
+    <div id="conversations"></div>
+
+    <div id="chat-container">
+        <div id="chat"></div>
+        <div id="message-input-container">
+            <input type="text" id="message" placeholder="Enter your message">
+            <button id="send-button" onclick="sendMessage()">Send Message</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:3000');
+
+        var token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjcsImlhdCI6MTcyOTAwMTk0MX0.Q2OW1IZZsJCtlIPd_nQLJHdS-0aUXSuOYC2Wcpd0jeI";
+        var conversationId = "";
+        var userName = "";
+        var otherName = "";
+
+        socket.on('connect', () => {
+            console.log('Connected to server');
+        });
+
+        socket.on('message', (msg) => {
+            console.log('token:', token);
+            console.log('userId:', msg.userId);
+            console.log('message:', msg);
+            if(token != msg.userId){
+                displayMessage(msg);
+            }
+        });
+
+        // socket.on('messageEdited', ({ messageId, newMessageContent }) => {
+        //     const messageElement = document.getElementById(`message-${messageId}`);
+        //     if (messageElement) {
+        //         messageElement.textContent = `Edited: ${newMessageContent}`;
+        //         messageElement.classList.add('edited');
+        //     }
+        // });
+
+        function joinRoom() {
+            const userId = document.getElementById('userId').value;
+            const conversationId = document.getElementById('conversationId').value;
+            if (userId && conversationId) {
+                socket.emit('joinRoom', { userId, conversationId });
+                console.log(`User ${userId} joined room ${conversationId}`);
+            } else {
+                alert('Please enter both User ID and Conversation ID');
+            }
+        }
+
+        async function sendMessage() {
+            const message = document.getElementById('message').value;
+            userId = token;
+
+            if (userId && conversationId && message) {
+                try {
+                    const response = await fetch('http://localhost:3000/api/messages', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            conversationId: conversationId,
+                            content: message
+                        })
+                    });
+                    const result = await response.json();
+                    if (response.ok) {
+                        console.log('Message sent successfully:', result);
+                        socket.emit('sendMessage', { userId, conversationId, message });
+                        displayMessage({ userId, conversationId, message }, true);
+                        document.getElementById('message').value = '';
+                    } else {
+                        console.error('Error:', result.error);
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                }
+            } else {
+                alert('Please enter User ID, Conversation ID, and Message');
+            }
+
+            // console.log(`token: ${token}, conversationId: ${conversationId}, message: ${message}, userId: ${userId}`);
+            // if (userId && conversationId && message) {
+            //     socket.emit('sendMessage', { userId, conversationId, message });
+            //     displayMessage({ userId, conversationId, message }, true);
+            //     document.getElementById('message').value = '';
+            // } else {
+            //     alert('Please enter User ID, Conversation ID, and Message');
+            // }
+        }
+
+        function displayMessage(msg, isMe = false) {
+            const chatDiv = document.getElementById('chat');
+            const newMessage = document.createElement('div');
+            newMessage.classList.add('message');
+            newMessage.classList.add(isMe ? 'me' : 'other');
+            console.log('isMe:', isMe);
+            console.log('otherName:', otherName);
+            if (isMe) {
+                newMessage.textContent = `Moi (${msg.conversationId}) : ${msg.message}`;
+            } else {
+                newMessage.textContent = `${otherName} (${msg.conversationId}) : ${msg.message}`;
+            }
+            newMessage.id = `message-${Date.now()}`;
+            chatDiv.appendChild(newMessage);
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+        }
+
+        async function loadMessages(convId) {
+            conversationId = convId; // Save the conversation ID for later use
+            console.log('Chargement des messages de la conversation', conversationId);
+
+            socket.emit('joinRoom', { token, conversationId });
+            console.log(`User ${token} joined room ${conversationId}`);
+            
+            try {
+                const response = await fetch(`http://localhost:3000/api/conversation/messages?conversationId=${conversationId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const messages = await response.json();
+                if (response.ok) {
+                    messages.forEach(message => {
+                        if (message.userName === otherName) {
+                            displayMessage(message);
+                        } else {
+                            displayMessage(message, true);
+                        }
+                    });
+                } else {
+                    console.error('Error:', messages.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Fonction pour charger les conversations
+        async function loadConversations() {
+            token = document.getElementById('userId').value;
+            try {
+                const response = await fetch('http://localhost:3000/api/conversation', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+                if (response.ok) {
+                    const conversationsDiv = document.getElementById('conversations');
+                    conversationsDiv.innerHTML = '';
+                    data.forEach(conversation => {
+                        otherName = conversation.otherUser.prenom + " " + conversation.otherUser.nom;
+                        userName = conversation.myUser.prenom + " " + conversation.myUser.nom;
+                        
+                        const conversationDiv = document.createElement('div');
+                        conversationDiv.innerHTML = `
+                            <p>Conversation avec ${otherName}</p>
+                            <button onclick="loadMessages(${conversation.conversationId})">Voir les messages</button>
+                        `;
+                        conversationsDiv.appendChild(conversationDiv);
+                    });
+                } else {
+                    console.error('Erreur:', data.error);
+                }
+            } catch (error) {
+                console.log('Erreur:', error);
+            }
+        }
+
+        // Fetch all conversations
+
+        async function fetchConversations() {
+            try {
+                const response = await fetch('http://localhost:3000/api/conversation', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + localStorage.getItem('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjcsImlhdCI6MTcyOTAwMTk0MX0.Q2OW1IZZsJCtlIPd_nQLJHdS-0aUXSuOYC2Wcpd0jeI') // Ensure you use the correct token
+                    }
+                });
+                const conversations = await response.json();
+                if (response.ok) {
+                    displayConversations(conversations);
+                } else {
+                    console.error('Error:', conversations.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Create a new conversation
+        async function createConversation() {
+            const user2Id = document.getElementById('user2Id').value; // Get the ID of the second user
+            if (!user2Id) {
+                alert('User2ID is required');
+                return;
+            }
+            try {
+                const response = await fetch('/conversation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + localStorage.getItem('token') // Ensure you use the correct token
+                    },
+                    body: JSON.stringify({ User2ID: user2Id })
+                });
+                const conversation = await response.json();
+                if (response.ok) {
+                    alert('Conversation created successfully');
+                    fetchConversations(); // Refresh conversations list
+                } else {
+                    console.error('Error:', conversation.error);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        }
+
+        // Display all conversations
+        function displayConversations(conversations) {
+            const chatDiv = document.getElementById('chat');
+            chatDiv.innerHTML = ''; // Clear previous conversations
+            conversations.forEach(conv => {
+                const conversationElement = document.createElement('div');
+                conversationElement.classList.add('conversation');
+                conversationElement.textContent = `Conversation between: ${conv.user1.prenom} ${conv.user1.nom} and ${conv.user2.prenom} ${conv.user2.nom}`;
+                chatDiv.appendChild(conversationElement);
+            });
+        }
+
+    </script>
+</body>
+</html>
